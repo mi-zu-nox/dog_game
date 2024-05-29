@@ -3,7 +3,7 @@ import os
 import random
 
 # 画像のパス
-IMAGE_PATH = "/Users/mizunox/Downloads/HPgames/images"
+IMAGE_PATH = "images"
 
 # 画面の幅と高さ
 WIDTH, HEIGHT = 800, 600
