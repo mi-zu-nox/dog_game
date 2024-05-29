@@ -1,0 +1,150 @@
+import pygame
+import os
+import random
+
+# 画像のパス
+IMAGE_PATH = "/Users/mizunox/Downloads/HPgames/images"
+
+# 画面の幅と高さ
+WIDTH, HEIGHT = 800, 600
+
+# 初期化
+pygame.init()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("dog_game")
+
+# 背景画像の読み込み
+background = pygame.image.load(os.path.join(IMAGE_PATH, "background2.png"))
+background = pygame.transform.scale(background, (WIDTH, HEIGHT))
+
+# プレイヤーの画像リスト
+player_images = [pygame.image.load(os.path.join(IMAGE_PATH, "dog1.png")), pygame.image.load(os.path.join(IMAGE_PATH, "dog2.png"))]
+
+# プレイヤーの初期位置
+player_x = WIDTH // 2 - player_images[0].get_width() // 2  # 画面の中央に配置
+player_y = 400  # 画面の下から400ピクセルの高さに配置
+
+# プレイヤーの初期画像
+player_index = 0
+player_img = player_images[player_index]
+
+# プレイヤーの移動速度
+player_speed = 10
+
+# left.png と right.png の画像
+left_button_img = pygame.image.load(os.path.join(IMAGE_PATH, "left1.png"))
+right_button_img = pygame.image.load(os.path.join(IMAGE_PATH, "right1.png"))
+
+# ボタンの新しいサイズを設定
+new_button_width = 50
+new_button_height = 50
+
+# left.png と right.png の位置
+left_button_x = 10
+left_button_y = HEIGHT - 150
+right_button_x = WIDTH - 100
+right_button_y = HEIGHT - 150
+
+# niku.png の読み込み
+niku_img = pygame.image.load(os.path.join(IMAGE_PATH, "niku.png"))
+niku_list = []  # 落下中の niku.png のリスト
+niku_speed = 5  # niku.png の落下速度
+
+# heart.png の読み込み
+heart_img = pygame.image.load(os.path.join(IMAGE_PATH, "heart1.png"))
+heart_timer = 0  # heart.png の表示時間を制御するタイマー
+heart_img_orig = pygame.image.load(os.path.join(IMAGE_PATH, "heart.png"))
+width, height = heart_img_orig.get_size()
+heart_img = pygame.transform.scale(heart_img_orig, (width // 10, height // 10))
+
+# メインループ
+running = True
+clock = pygame.time.Clock()
+move_left = False
+move_right = False
+facing_right = True
+
+while running:
+    screen.blit(background, (0, 0))
+
+    # イベント処理
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:  # 左クリック
+                mouse_x, mouse_y = event.pos
+                if left_button_x < mouse_x < left_button_x + left_button_img.get_width() and \
+                        left_button_y < mouse_y < left_button_y + left_button_img.get_height():
+                    move_left = True
+                    facing_right = False  # プレイヤーの向きを変更
+                elif right_button_x < mouse_x < right_button_x + right_button_img.get_width() and \
+                        right_button_y < mouse_y < right_button_y + right_button_img.get_height():
+                    move_right = True
+                    facing_right = True  # プレイヤーの向きを変更
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:  # 左クリック
+                if left_button_x < event.pos[0] < left_button_x + left_button_img.get_width() and \
+                        left_button_y < event.pos[1] < left_button_y + left_button_img.get_height():
+                    move_left = False
+                elif right_button_x < event.pos[0] < right_button_x + right_button_img.get_width() and \
+                        right_button_y < event.pos[1] < right_button_y + right_button_img.get_height():
+                    move_right = False
+
+    # 一定時間ごとにランダムな位置から niku.png を落とす
+    if len(niku_list) < 3 and random.randint(0, 100) < 5:
+        niku_x = random.randint(0, WIDTH - niku_img.get_width())  # ここを修正
+        niku_y = 0
+        niku_list.append([niku_x, niku_y])
+
+    # niku.png の落下処理
+    for niku in niku_list:
+        niku[1] += niku_speed
+        screen.blit(niku_img, (niku[0], niku[1]))
+
+        # プレイヤーと niku.png の衝突判定
+        if niku[1] >= player_y - niku_img.get_height() and \
+            niku[1] <= player_y + player_img.get_height() and \
+            niku[0] >= player_x - niku_img.get_width() // 2 and \
+            niku[0] <= player_x + player_img.get_width() - niku_img.get_width() // 2:
+            niku_list.remove(niku)
+            heart_timer = 3  # heart.png を 3 フレーム (60 / 24 = 2.5 秒) 表示する
+
+    # heart.png の表示
+    if heart_timer > 0:
+        screen.blit(heart_img, (player_x + player_img.get_width() - heart_img.get_width() +10, player_y))
+        heart_timer -= 1
+
+    # プレイヤーの移動と向きの設定
+    if move_left:
+        player_x -= player_speed
+    if move_right:
+        player_x += player_speed
+
+    # プレイヤーアイコンが画面外に出ないように制御
+    if player_x < 0:
+        player_x = 0
+    elif player_x + player_img.get_width() > WIDTH:
+        player_x = WIDTH - player_img.get_width()
+
+    # プレイヤーのアニメーション
+    if move_left or move_right:
+        player_index = (player_index + 1) % len(player_images)
+    else:
+        player_index = 0  # 移動していないときはアニメーションをリセット
+
+    # プレイヤーの描画
+    if facing_right:
+        player_img = pygame.transform.flip(player_images[player_index], True, False)
+    else:
+        player_img = player_images[player_index]
+    screen.blit(player_img, (player_x, player_y))
+
+    # left.png と right.png の描画
+    screen.blit(left_button_img, (left_button_x, left_button_y))
+    screen.blit(right_button_img, (right_button_x, right_button_y))
+
+    pygame.display.flip()
+    clock.tick(24)  # 24 FPSのアニメーション
+
+pygame.quit()
